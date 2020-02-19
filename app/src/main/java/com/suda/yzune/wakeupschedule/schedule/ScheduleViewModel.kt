@@ -53,13 +53,13 @@ class ScheduleViewModel(application: Application) : AndroidViewModel(application
 
     fun getImportSchoolBean(): SchoolInfo {
         val json = getApplication<App>().getPrefer().getString(PreferenceKeys.IMPORT_SCHOOL, null)
-                ?: return SchoolInfo("S", "苏州大学", "", Common.TYPE_LOGIN)
+                ?: return SchoolInfo("B", "北京邮电大学新教务", "http://jwgl.bupt.edu.cn/jsxsd", Common.TYPE_QZ_WITH_NODE)
         val gson = Gson()
         val res = gson.fromJson<SchoolInfo>(json, SchoolInfo::class.java)
         if (!res.type.isNullOrEmpty()) {
             return gson.fromJson<SchoolInfo>(json, SchoolInfo::class.java)
         }
-        return SchoolInfo("S", "苏州大学", "", Common.TYPE_LOGIN)
+        return SchoolInfo("B", "北京邮电大学新教务", "http://jwgl.bupt.edu.cn/jsxsd", Common.TYPE_QZ_WITH_NODE)
     }
 
     fun getMultiCourse(week: Int, day: Int, startNode: Int): List<CourseBean> {

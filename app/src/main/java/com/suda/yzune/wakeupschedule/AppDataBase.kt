@@ -40,7 +40,7 @@ abstract class AppDatabase : RoomDatabase() {
                 database.execSQL("CREATE TABLE TableBean (\n" +
                         "    id INTEGER NOT NULL PRIMARY KEY AUTOINCREMENT,\n" +
                         "    tableName TEXT NOT NULL, \n" +
-                        "    nodes INTEGER NOT NULL DEFAULT 11, \n" +
+                        "    nodes INTEGER NOT NULL DEFAULT 14, \n" +
                         "    background TEXT NOT NULL DEFAULT '',\n" +
                         "    timeTable INTEGER NOT NULL DEFAULT 1,\n" +
                         "    startDate TEXT NOT NULL DEFAULT '2019-02-25',\n" +
@@ -99,7 +99,7 @@ abstract class AppDatabase : RoomDatabase() {
                 database.execSQL("CREATE INDEX index_TimeDetailBean_id_timeTable ON TimeDetailBean(timeTable ASC);")
                 database.execSQL("DROP TABLE TimeDetailBean_old;")
                 database.execSQL("ALTER TABLE TimeTableBean ADD COLUMN sameLen INTEGER NOT NULL DEFAULT 1;")
-                database.execSQL("ALTER TABLE TimeTableBean ADD COLUMN courseLen INTEGER NOT NULL DEFAULT 50;")
+                database.execSQL("ALTER TABLE TimeTableBean ADD COLUMN courseLen INTEGER NOT NULL DEFAULT 45;")
             }
         }
     }

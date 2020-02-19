@@ -46,7 +46,7 @@
         android:paddingLeft="48dp"
         android:paddingRight="48dp"
         android:paddingBottom="16dp"
-        android:text="由WakeUp俱乐部开发\n本项目开源  欢迎star和fork\nhttps://github.com/YZune/WakeupSchedule_Kotlin"
+        android:text="由WakeUp俱乐部开发\n由北邮软件学院王衔飞适配北邮新版教务系统\n本项目开源  欢迎star和fork\nhttps://github.com/YZune/WakeupSchedule_Kotlin"
         android:textSize="12sp" />
 
     <androidx.appcompat.widget.AppCompatTextView

@@ -95,7 +95,7 @@ class AdvancedSettingsActivity : BaseListActivity(), ColorPickerFragment.ColorPi
         }
 
         items.add(VerticalItem("主题颜色", "调整大部分标签和虚拟键的颜色。\n以下关于虚拟键的设置，只对有虚拟键的手机有效哦，是为了有更好的沉浸效果~\n有实体按键或全面屏手势的手机本身就很棒啦~"))
-        items.add(SwitchItem("主界面虚拟键沉浸", getPrefer().getBoolean(PreferenceKeys.HIDE_NAV_BAR, false)))
+        items.add(SwitchItem("主界面虚拟键沉浸", getPrefer().getBoolean(PreferenceKeys.HIDE_NAV_BAR, true)))
 
         items.add(CategoryItem("上课提醒", false))
         items.add(VerticalItem("功能说明", "本功能处于<b><font color='#$colorStr'>试验性阶段</font></b>。由于国产手机对系统的定制不尽相同，本功能可能会在某些手机上失效。<b><font color='#$colorStr'>开启前提：设置好课程时间 + 往桌面添加一个日视图小部件 + 允许App后台运行</font></b>。<br>理论上<b><font color='#$colorStr'>每次设置之后</font></b>需要半天以上的时间才会正常工作，理论上不会很耗电。", true))

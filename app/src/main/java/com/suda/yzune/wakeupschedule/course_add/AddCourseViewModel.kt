@@ -31,7 +31,7 @@ class AddCourseViewModel(application: Application) : AndroidViewModel(applicatio
     var newId = -1
     var tableId = 0
     var maxWeek = 30
-    var nodes = 11
+    var nodes = 14
 
     fun judgeType(list: ArrayList<Int>): Int {
         val oddListCount = list.count {

@@ -94,8 +94,8 @@ class ScheduleFragment : BaseFragment() {
                         addView(img, LinearLayoutCompat.LayoutParams.WRAP_CONTENT, dip(240))
                     }
                     addView(AppCompatTextView(context).apply {
-                        text = "本周没有课程哦"
-                        setTextColor(viewModel.table.textColor)
+                        text = "\n\n\n"
+                        setTextColor(Color.WHITE)
                         gravity = Gravity.CENTER
                     }, LinearLayoutCompat.LayoutParams(LinearLayoutCompat.LayoutParams.MATCH_PARENT, LinearLayoutCompat.LayoutParams.WRAP_CONTENT).apply {
                         topMargin = dip(16)

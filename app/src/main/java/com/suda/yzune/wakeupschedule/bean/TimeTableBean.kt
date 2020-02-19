@@ -9,5 +9,5 @@ data class TimeTableBean(
         var id: Int,
         var name: String,
         var sameLen: Boolean = true,
-        var courseLen: Int = 50
+        var courseLen: Int = 45
 )

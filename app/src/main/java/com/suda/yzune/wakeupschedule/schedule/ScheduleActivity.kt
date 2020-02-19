@@ -4,6 +4,7 @@ import android.Manifest
 import android.appwidget.AppWidgetManager
 import android.content.Intent
 import android.content.pm.PackageManager
+import android.graphics.Color
 import android.os.Build
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -86,7 +87,7 @@ class ScheduleActivity : BaseActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        if (getPrefer().getBoolean(PreferenceKeys.HIDE_NAV_BAR, false) && Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+        if (getPrefer().getBoolean(PreferenceKeys.HIDE_NAV_BAR, true) && Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
             window.addFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_NAVIGATION)
         }
         setContentView(ScheduleActivityUI(this).root)
@@ -121,25 +122,25 @@ class ScheduleActivity : BaseActivity() {
         initView()
         initNavView()
 
-        val openTimes = getPrefer().getInt(PreferenceKeys.OPEN_TIMES, 0)
-        if (openTimes < 10) {
-            getPrefer().edit {
-                putInt(PreferenceKeys.OPEN_TIMES, openTimes + 1)
-            }
-        } else if (openTimes == 10) {
-            val dialog = DonateFragment.newInstance()
-            dialog.isCancelable = false
-            dialog.show(supportFragmentManager, "donateDialog")
-            getPrefer().edit {
-                putInt(PreferenceKeys.OPEN_TIMES, openTimes + 1)
-            }
-        }
+//        val openTimes = getPrefer().getInt(PreferenceKeys.OPEN_TIMES, 0)
+//        if (openTimes < 10) {
+//            getPrefer().edit {
+//                putInt(PreferenceKeys.OPEN_TIMES, openTimes + 1)
+//            }
+//        } else if (openTimes == 10) {
+//            val dialog = DonateFragment.newInstance()
+//            dialog.isCancelable = false
+//            dialog.show(supportFragmentManager, "donateDialog")
+//            getPrefer().edit {
+//                putInt(PreferenceKeys.OPEN_TIMES, openTimes + 1)
+//            }
+//        }
 
         if (!getPrefer().getBoolean(PreferenceKeys.HAS_COUNT, false)) {
             MyRetrofitUtils.instance.addCount(applicationContext)
         }
 
-        if (getPrefer().getBoolean(PreferenceKeys.CHECK_UPDATE, true)) {
+        if (getPrefer().getBoolean(PreferenceKeys.CHECK_UPDATE, false)) {
             MyRetrofitUtils.instance.getService().getUpdateInfo().enqueue(object : Callback<ResponseBody> {
                 override fun onFailure(call: Call<ResponseBody>?, t: Throwable?) {}
 
@@ -323,7 +324,7 @@ class ScheduleActivity : BaseActivity() {
     }
 
     private fun initNavView() {
-        navigationView.menu.findItem(R.id.nav_suda).isVisible = getPrefer().getBoolean(PreferenceKeys.SHOW_SUDA_LIFE, true)
+        navigationView.menu.findItem(R.id.nav_suda).isVisible = getPrefer().getBoolean(PreferenceKeys.SHOW_SUDA_LIFE, false)
         navigationView.setNavigationItemSelectedListener {
             when (it.itemId) {
                 R.id.nav_setting -> {
