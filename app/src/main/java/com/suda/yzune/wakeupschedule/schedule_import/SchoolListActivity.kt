@@ -27,6 +27,7 @@ import com.suda.yzune.wakeupschedule.R
 import com.suda.yzune.wakeupschedule.base_view.BaseTitleActivity
 import com.suda.yzune.wakeupschedule.schedule_import.Common.TYPE_BNUZ
 import com.suda.yzune.wakeupschedule.schedule_import.Common.TYPE_CF
+import com.suda.yzune.wakeupschedule.schedule_import.Common.TYPE_HELP
 import com.suda.yzune.wakeupschedule.schedule_import.Common.TYPE_HNIU
 import com.suda.yzune.wakeupschedule.schedule_import.Common.TYPE_HNUST
 import com.suda.yzune.wakeupschedule.schedule_import.Common.TYPE_LOGIN
@@ -42,7 +43,8 @@ import com.suda.yzune.wakeupschedule.schedule_import.Common.TYPE_ZF
 import com.suda.yzune.wakeupschedule.schedule_import.Common.TYPE_ZF_1
 import com.suda.yzune.wakeupschedule.schedule_import.Common.TYPE_ZF_NEW
 import com.suda.yzune.wakeupschedule.schedule_import.bean.SchoolInfo
-import com.suda.yzune.wakeupschedule.utils.PreferenceKeys
+import com.suda.yzune.wakeupschedule.utils.Const
+import com.suda.yzune.wakeupschedule.utils.Utils
 import com.suda.yzune.wakeupschedule.utils.getPrefer
 import com.timehop.stickyheadersrecyclerview.StickyRecyclerHeadersDecoration
 import es.dmoral.toasty.Toasty
@@ -188,18 +190,23 @@ class SchoolListActivity : BaseTitleActivity(), OnQuickSideBarTouchListener {
         val gson = Gson()
         schools.apply {
             add(SchoolInfo("*", "北京邮电大学新教务", "http://jwgl.bupt.edu.cn/jsxsd", TYPE_QZ_WITH_NODE))
-            add(SchoolInfo("*", "北京邮电大学新教务（使用VPN）", "https://vpn.bupt.edu.cn/", TYPE_QZ_WITH_NODE))
-            add(SchoolInfo("*", "北京邮电大学新教务（使用WebVPN）", "https://webvpn.bupt.edu.cn/", TYPE_QZ_WITH_NODE))
-            add(SchoolInfo("★", "新 URP 系统", "", TYPE_URP_NEW))
-            add(SchoolInfo("★", "URP 系统", "", TYPE_URP))
-            add(SchoolInfo("★", "新正方教务", "", TYPE_ZF_NEW))
-            add(SchoolInfo("★", "正方教务", "", TYPE_ZF))
-            add(SchoolInfo("★", "强智教务", "", TYPE_QZ))
-            add(SchoolInfo("★", "旧强智（需要 IE 的那种）", "", TYPE_QZ_OLD))
+            add(SchoolInfo("*", "北京邮电大学新教务（VPN）", "https://vpn.bupt.edu.cn/", TYPE_QZ_WITH_NODE))
+            add(SchoolInfo("*", "北京邮电大学新教务（WebVPN）", "https://webvpn.bupt.edu.cn/", TYPE_QZ_WITH_NODE))
+            getImportSchoolBean()?.let {
+                it.sortKey = "★"
+                add(it)
+            }
+            add(SchoolInfo("通", "如何正确选择教务类型？", "https://support.qq.com/embed/97617/faqs/59901", TYPE_HELP))
+            add(SchoolInfo("通", "新 URP 系统", "", TYPE_URP_NEW))
+            add(SchoolInfo("通", "URP 系统", "", TYPE_URP))
+            add(SchoolInfo("通", "新正方教务", "", TYPE_ZF_NEW))
+            add(SchoolInfo("通", "正方教务", "", TYPE_ZF))
+            add(SchoolInfo("通", "强智教务", "", TYPE_QZ))
+            add(SchoolInfo("通", "旧强智（需要 IE 的那种）", "", TYPE_QZ_OLD))
             add(SchoolInfo("A", "安徽信息工程学院", "http://teach.aiit.edu.cn/xtgl/login_slogin.html", TYPE_ZF_NEW))
             add(SchoolInfo("A", "安徽农业大学", "http://newjwxt.ahau.edu.cn/jwglxt", TYPE_ZF_NEW))
             add(SchoolInfo("A", "安徽大学", "http://xk2.ahu.cn/default2.aspx", TYPE_ZF))
-            add(SchoolInfo("A", "安徽工业大学", "http://211.70.149.135:88/", TYPE_ZF))
+            add(SchoolInfo("A", "安徽工业大学", "http://jwxt.ahut.edu.cn/jsxsd/", TYPE_QZ))
             add(SchoolInfo("A", "安徽建筑大学", "http://219.231.0.156/", TYPE_ZF_NEW))
             add(SchoolInfo("A", "安徽财经大学", "", TYPE_URP_NEW))
             add(SchoolInfo("B", "保定学院", "http://jwgl.bdu.edu.cn/xtgl/login_slogin.html", TYPE_ZF_NEW))
@@ -214,8 +221,8 @@ class SchoolListActivity : BaseTitleActivity(), OnQuickSideBarTouchListener {
             add(SchoolInfo("B", "北京联合大学", "", TYPE_ZF))
             add(SchoolInfo("B", "北京邮电大学老教务", "https://jwxt.bupt.edu.cn/", TYPE_URP))
             add(SchoolInfo("B", "北京邮电大学新教务", "http://jwgl.bupt.edu.cn/jsxsd", TYPE_QZ_WITH_NODE))
-            add(SchoolInfo("B", "北京邮电大学新教务（使用VPN）", "https://vpn.bupt.edu.cn/", TYPE_QZ_WITH_NODE))
-            add(SchoolInfo("B", "北京邮电大学新教务（使用WebVPN）", "https://webvpn.bupt.edu.cn/", TYPE_QZ_WITH_NODE))
+            add(SchoolInfo("B", "北京邮电大学新教务（VPN）", "https://vpn.bupt.edu.cn/", TYPE_QZ_WITH_NODE))
+            add(SchoolInfo("B", "北京邮电大学新教务（WebVPN）", "https://webvpn.bupt.edu.cn/", TYPE_QZ_WITH_NODE))
             add(SchoolInfo("B", "渤海大学", "http://jw.bhu.edu.cn/", TYPE_URP))
             add(SchoolInfo("B", "滨州医学院", "http://jwgl.bzmc.edu.cn/jwglxt/xtgl/login_slogin.html", TYPE_ZF_NEW))
             add(SchoolInfo("C", "常州机电职业技术学院", "http://jwc.czmec.cn/", TYPE_ZF_NEW))
@@ -241,7 +248,7 @@ class SchoolListActivity : BaseTitleActivity(), OnQuickSideBarTouchListener {
             add(SchoolInfo("F", "福建农林大学", "http://jwgl.fafu.edu.cn", TYPE_ZF_1))
             add(SchoolInfo("F", "福建农林大学金山学院", "http://jsxyjwgl.fafu.edu.cn/", TYPE_ZF))
             add(SchoolInfo("F", "福建工程学院", "https://jwxtwx.fjut.edu.cn/jwglxt/", TYPE_ZF_NEW))
-            add(SchoolInfo("F", "福建师范大学", "http://jwgl.fjnu.edu.cn/", TYPE_ZF))
+            add(SchoolInfo("F", "福建师范大学", "http://jwglxt.fjnu.edu.cn/xtgl/login_slogin.html", TYPE_ZF_NEW))
             add(SchoolInfo("G", "广东外语外贸大学", "http://jxgl.gdufs.edu.cn/jsxsd/", TYPE_QZ_WITH_NODE))
             add(SchoolInfo("G", "广东工业大学", "http://jxfw.gdut.edu.cn/", TYPE_CF))
             add(SchoolInfo("G", "广东海洋大学", "http://210.38.137.126:8016/default2.aspx", TYPE_ZF))
@@ -405,7 +412,7 @@ class SchoolListActivity : BaseTitleActivity(), OnQuickSideBarTouchListener {
             add(SchoolInfo("X", "西昌学院", "https://jwxt.xcc.edu.cn/xtgl/login_slogin.html", TYPE_ZF_NEW))
             add(SchoolInfo("Y", "云南财经大学", "http://202.203.194.2/", TYPE_ZF))
             add(SchoolInfo("Y", "延安大学", "http://jwglxt.yau.edu.cn/jwglxt/xtgl/login_slogin.html", TYPE_ZF_NEW))
-            add(SchoolInfo("Y", "烟台大学", "http://xk.jwc.ytu.edu.cn/", TYPE_URP))
+            add(SchoolInfo("Y", "烟台大学", "http://xk.jwc.ytu.edu.cn/", TYPE_URP_NEW))
             add(SchoolInfo("Z", "中南大学", "https://csujwc.its.csu.edu.cn/", TYPE_QZ))
             add(SchoolInfo("Z", "中南林业科技大学", "http://jwgl.csuft.edu.cn/", TYPE_QZ))
             add(SchoolInfo("Z", "中南财经政法大学", "", TYPE_QZ))
@@ -442,6 +449,10 @@ class SchoolListActivity : BaseTitleActivity(), OnQuickSideBarTouchListener {
         showList.addAll(schools)
         val adapter = SchoolImportListAdapter(R.layout.item_apply_info, showList)
         adapter.setOnItemClickListener { _, _, position ->
+            if (showList[position].type == TYPE_HELP) {
+                Utils.openUrl(this, showList[position].url)
+                return@setOnItemClickListener
+            }
             if (fromLocal) {
                 setResult(Activity.RESULT_OK, Intent().apply { putExtra("type", showList[position].type) })
                 finish()
@@ -452,16 +463,15 @@ class SchoolListActivity : BaseTitleActivity(), OnQuickSideBarTouchListener {
                         return@launch
                     }
                     getPrefer().edit {
-                        putString(PreferenceKeys.IMPORT_SCHOOL, gson.toJson(showList[position]))
+                        putString(Const.KEY_IMPORT_SCHOOL, gson.toJson(showList[position]))
                     }
                     val tableId = tableDao.getDefaultTableId()
-                    start<LoginWebActivity> {
+                    startActivityForResult(Intent(this@SchoolListActivity, LoginWebActivity::class.java).apply {
                         putExtra("school_name", showList[position].name)
                         putExtra("import_type", showList[position].type)
                         putExtra("tableId", tableId)
                         putExtra("url", showList[position].url)
-                    }
-                    finish()
+                    }, Const.REQUEST_CODE_IMPORT)
                 }
             }
         }
@@ -484,6 +494,17 @@ class SchoolListActivity : BaseTitleActivity(), OnQuickSideBarTouchListener {
         recyclerView.addItemDecoration(headersDecor)
     }
 
+    private fun getImportSchoolBean(): SchoolInfo? {
+        val json = getPrefer().getString(Const.KEY_IMPORT_SCHOOL, null)
+                ?: return null
+        val gson = Gson()
+        val res = gson.fromJson<SchoolInfo>(json, SchoolInfo::class.java)
+        if (!res.type.isNullOrEmpty()) {
+            return gson.fromJson<SchoolInfo>(json, SchoolInfo::class.java)
+        }
+        return null
+    }
+
     override fun onLetterTouching(touching: Boolean) {
         quickSideBarTipsView.visibility = if (touching) View.VISIBLE else View.INVISIBLE
     }
@@ -492,6 +513,14 @@ class SchoolListActivity : BaseTitleActivity(), OnQuickSideBarTouchListener {
         quickSideBarTipsView.setText(letter, position, y)
         if (letters.containsKey(letter)) {
             (recyclerView.layoutManager as LinearLayoutManager).scrollToPositionWithOffset(letters[letter]!!, 0)
+        }
+    }
+
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+        if (resultCode == Activity.RESULT_OK && requestCode == Const.REQUEST_CODE_IMPORT) {
+            setResult(Activity.RESULT_OK)
+            finish()
         }
     }
 }

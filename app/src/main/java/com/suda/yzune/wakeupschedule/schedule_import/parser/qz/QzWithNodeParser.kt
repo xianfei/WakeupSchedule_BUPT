@@ -8,8 +8,6 @@ class QzWithNodeParser(source: String) : QzParser(source) {
     override fun convert(day: Int, nodeCount: Int, infoStr: String, courseList: MutableList<Course>) {
         val courseHtml = Jsoup.parse(infoStr)
         // val courseName = infoStr.substringBefore("<br>").trim()
-        // 增加对于<span>标签的适配用于适配北邮新教务系统
-        // val courseName = infoStr.substringBefore("<br>").substringBefore("<span>").trim()
         val courseName = Jsoup.parse(infoStr.substringBefore("<font").substringBefore("<span>").trim()).text()
         val teacher = courseHtml.getElementsByAttributeValue("title", "老师").text().trim()
         val room = courseHtml.getElementsByAttributeValue(

@@ -2,11 +2,12 @@ package com.suda.yzune.wakeupschedule.schedule
 
 import androidx.appcompat.widget.AppCompatImageView
 import com.bumptech.glide.Glide
+import com.bumptech.glide.load.resource.bitmap.CenterCrop
+import com.bumptech.glide.load.resource.bitmap.RoundedCorners
 import com.chad.library.adapter.base.BaseQuickAdapter
 import com.chad.library.adapter.base.viewholder.BaseViewHolder
 import com.suda.yzune.wakeupschedule.R
 import com.suda.yzune.wakeupschedule.bean.TableSelectBean
-import jp.wasabeef.glide.transformations.RoundedCornersTransformation
 import splitties.dimensions.dip
 
 class TableNameAdapter(layoutResId: Int, data: MutableList<TableSelectBean>) :
@@ -14,11 +15,7 @@ class TableNameAdapter(layoutResId: Int, data: MutableList<TableSelectBean>) :
 
     override fun convert(helper: BaseViewHolder, item: TableSelectBean?) {
         if (item == null) return
-        if (item.type == 1) {
-            helper.setVisible(R.id.ll_action, true)
-        } else {
-            helper.setVisible(R.id.ll_action, false)
-        }
+        helper.setGone(R.id.menu_setting, item.type != 1)
 
         if (item.tableName != "") {
             helper.setText(R.id.tv_table_name, item.tableName)
@@ -30,13 +27,13 @@ class TableNameAdapter(layoutResId: Int, data: MutableList<TableSelectBean>) :
             Glide.with(context)
                     .load(item.background)
                     .override(200, 300)
-                    .transform(RoundedCornersTransformation(context.dip(4), 0, RoundedCornersTransformation.CornerType.ALL))
+                    .transform(CenterCrop(), RoundedCorners(context.dip(4)))
                     .into(imageView)
         } else {
             Glide.with(context)
                     .load(R.drawable.main_background_2020_1)
                     .override(200, 300)
-                    .transform(RoundedCornersTransformation(context.dip(4), 0, RoundedCornersTransformation.CornerType.ALL))
+                    .transform(CenterCrop(), RoundedCorners(context.dip(4)))
                     .into(imageView)
         }
     }

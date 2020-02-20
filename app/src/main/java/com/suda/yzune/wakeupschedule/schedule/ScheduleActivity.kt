@@ -1,36 +1,32 @@
 package com.suda.yzune.wakeupschedule.schedule
 
-import android.Manifest
 import android.appwidget.AppWidgetManager
 import android.content.Intent
-import android.content.pm.PackageManager
-import android.graphics.Color
+import android.graphics.drawable.Drawable
+import android.net.Uri
 import android.os.Build
 import android.os.Bundle
-import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.view.WindowManager
-import android.widget.FrameLayout
-import android.widget.Toast
+import android.widget.TextView
 import androidx.activity.viewModels
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.widget.AppCompatImageButton
-import androidx.appcompat.widget.AppCompatImageView
 import androidx.appcompat.widget.AppCompatTextView
-import androidx.constraintlayout.widget.ConstraintLayout
-import androidx.core.app.ActivityCompat
-import androidx.core.content.ContextCompat
+import androidx.core.app.ShareCompat
 import androidx.core.content.edit
 import androidx.core.view.GravityCompat
-import androidx.drawerlayout.widget.DrawerLayout
 import androidx.lifecycle.Observer
-import androidx.recyclerview.widget.RecyclerView
 import androidx.viewpager.widget.ViewPager
 import com.bumptech.glide.Glide
+import com.bumptech.glide.load.DataSource
+import com.bumptech.glide.load.engine.GlideException
 import com.bumptech.glide.load.resource.drawable.DrawableTransitionOptions
+import com.bumptech.glide.request.RequestListener
+import com.bumptech.glide.request.target.Target
+import com.google.android.material.bottomsheet.BottomSheetBehavior
 import com.google.android.material.dialog.MaterialAlertDialogBuilder
-import com.google.android.material.navigation.NavigationView
 import com.google.android.material.textfield.TextInputEditText
 import com.google.android.material.textfield.TextInputLayout
 import com.google.gson.Gson
@@ -44,21 +40,24 @@ import com.suda.yzune.wakeupschedule.bean.UpdateInfoBean
 import com.suda.yzune.wakeupschedule.course_add.AddCourseActivity
 import com.suda.yzune.wakeupschedule.intro.AboutActivity
 import com.suda.yzune.wakeupschedule.intro.IntroYoungActivity
-import com.suda.yzune.wakeupschedule.schedule_import.LoginWebActivity
 import com.suda.yzune.wakeupschedule.schedule_manage.ScheduleManageActivity
 import com.suda.yzune.wakeupschedule.schedule_settings.ScheduleSettingsActivity
 import com.suda.yzune.wakeupschedule.settings.SettingsActivity
 import com.suda.yzune.wakeupschedule.suda_life.SudaLifeActivity
 import com.suda.yzune.wakeupschedule.utils.*
-import com.suda.yzune.wakeupschedule.utils.CourseUtils.countWeek
 import com.suda.yzune.wakeupschedule.utils.UpdateUtils.getVersionCode
 import es.dmoral.toasty.Toasty
+import it.sephiroth.android.library.xtooltip.Tooltip
+import kotlinx.coroutines.delay
 import okhttp3.ResponseBody
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
 import splitties.activities.start
 import splitties.dimensions.dip
+import splitties.resources.styledDimenPxSize
+import splitties.snackbar.action
+import splitties.snackbar.longSnack
 import java.text.ParseException
 import kotlin.math.roundToInt
 
@@ -67,32 +66,24 @@ class ScheduleActivity : BaseActivity() {
     private val viewModel by viewModels<ScheduleViewModel>()
     private var mAdapter: SchedulePagerAdapter? = null
 
-    private lateinit var scheduleViewPager: ViewPager
-    private lateinit var bgImageView: AppCompatImageView
-    private lateinit var scheduleConstraintLayout: ConstraintLayout
-    private lateinit var navImageButton: AppCompatTextView
-    private lateinit var shareImageButton: AppCompatTextView
-    private lateinit var addImageButton: AppCompatTextView
-    private lateinit var importImageButton: AppCompatTextView
-    private lateinit var moreImageButton: AppCompatTextView
-    private lateinit var tableNameRecyclerView: RecyclerView
-    private lateinit var dateTextView: AppCompatTextView
-    private lateinit var weekTextView: AppCompatTextView
-    private lateinit var weekdayTextView: AppCompatTextView
-    private lateinit var navigationView: NavigationView
-    private lateinit var drawerLayout: DrawerLayout
+    private lateinit var ui: ScheduleActivityUI
+    private lateinit var bottomSheetBehavior: BottomSheetBehavior<View>
+
     private val preLoad by lazy(LazyThreadSafetyMode.NONE) {
-        getPrefer().getBoolean(PreferenceKeys.SCHEDULE_PRE_LOAD, true)
+        getPrefer().getBoolean(Const.KEY_SCHEDULE_PRE_LOAD, true)
     }
+
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        if (getPrefer().getBoolean(PreferenceKeys.HIDE_NAV_BAR, true) && Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+        if (getPrefer().getBoolean(Const.KEY_HIDE_NAV_BAR, true)) {
             window.addFlags(WindowManager.LayoutParams.FLAG_TRANSLUCENT_NAVIGATION)
         }
-        setContentView(ScheduleActivityUI(this).root)
+        ui = ScheduleActivityUI(this)
+        setContentView(ui.root)
 
-        val json = getPrefer().getString(PreferenceKeys.OLD_VERSION_COURSE, "")
+        val json = getPrefer().getString(Const.KEY_OLD_VERSION_COURSE, "")
         if (!json.isNullOrEmpty()) {
             launch {
                 try {
@@ -104,43 +95,36 @@ class ScheduleActivity : BaseActivity() {
             }
         }
 
-        scheduleViewPager = findViewById(R.id.anko_vp_schedule)
-        bgImageView = findViewById(R.id.anko_iv_bg)
-        scheduleConstraintLayout = findViewById(R.id.anko_cl_schedule)
-        navImageButton = findViewById(R.id.anko_ib_nav)
-        shareImageButton = findViewById(R.id.anko_ib_share)
-        addImageButton = findViewById(R.id.anko_ib_add)
-        importImageButton = findViewById(R.id.anko_ib_import)
-        moreImageButton = findViewById(R.id.anko_ib_more)
-        tableNameRecyclerView = findViewById(R.id.anko_rv_table_name)
-        dateTextView = findViewById(R.id.anko_tv_date)
-        weekTextView = findViewById(R.id.anko_tv_week)
-        weekdayTextView = findViewById(R.id.anko_tv_weekday)
-        navigationView = findViewById(R.id.anko_nv)
-        drawerLayout = findViewById(R.id.anko_drawer_layout)
+        bottomSheetBehavior = BottomSheetBehavior.from(ui.bottomSheet)
+
+        ui.content.postDelayed({
+            if (!getPrefer().getBoolean(Const.KEY_HAS_INTRO, false)) {
+                initIntro()
+            }
+        }, 500)
 
         initView()
         initNavView()
 
-//        val openTimes = getPrefer().getInt(PreferenceKeys.OPEN_TIMES, 0)
+//        val openTimes = getPrefer().getInt(Const.KEY_OPEN_TIMES, 0)
 //        if (openTimes < 10) {
 //            getPrefer().edit {
-//                putInt(PreferenceKeys.OPEN_TIMES, openTimes + 1)
+//                putInt(Const.KEY_OPEN_TIMES, openTimes + 1)
 //            }
 //        } else if (openTimes == 10) {
 //            val dialog = DonateFragment.newInstance()
 //            dialog.isCancelable = false
 //            dialog.show(supportFragmentManager, "donateDialog")
 //            getPrefer().edit {
-//                putInt(PreferenceKeys.OPEN_TIMES, openTimes + 1)
+//                putInt(Const.KEY_OPEN_TIMES, openTimes + 1)
 //            }
 //        }
 
-        if (!getPrefer().getBoolean(PreferenceKeys.HAS_COUNT, false)) {
+        if (!getPrefer().getBoolean(Const.KEY_HAS_COUNT, false)) {
             MyRetrofitUtils.instance.addCount(applicationContext)
         }
 
-        if (getPrefer().getBoolean(PreferenceKeys.CHECK_UPDATE, false)) {
+        if (getPrefer().getBoolean(Const.KEY_CHECK_UPDATE, false)) {
             MyRetrofitUtils.instance.getService().getUpdateInfo().enqueue(object : Callback<ResponseBody> {
                 override fun onFailure(call: Call<ResponseBody>?, t: Throwable?) {}
 
@@ -160,21 +144,18 @@ class ScheduleActivity : BaseActivity() {
             })
         }
 
-        if (!getPrefer().getBoolean(PreferenceKeys.HAS_INTRO, false)) {
-            initIntro()
-        }
-
         viewModel.initTableSelectList().observe(this, Observer {
             if (it == null) return@Observer
             viewModel.tableSelectList.clear()
             viewModel.tableSelectList.addAll(it)
-            if (tableNameRecyclerView.adapter == null) {
+            if (ui.rvTableName.adapter == null) {
                 initTableMenu(viewModel.tableSelectList)
             } else {
-                tableNameRecyclerView.adapter?.notifyDataSetChanged()
+                ui.rvTableName.adapter?.notifyDataSetChanged()
             }
         })
 
+        initBottomSheetAction()
         //DonateFragment.newInstance().show(supportFragmentManager, "AfterImportTipFragment")
     }
 
@@ -186,14 +167,24 @@ class ScheduleActivity : BaseActivity() {
                     .load(viewModel.table.background)
                     .override(x, y)
                     .transition(DrawableTransitionOptions.withCrossFade())
+                    .listener(object : RequestListener<Drawable> {
+                        override fun onLoadFailed(e: GlideException?, model: Any?, target: Target<Drawable>?, isFirstResource: Boolean): Boolean {
+                            Toasty.error(this@ScheduleActivity, "无法检索背景图片，可能是它为某个应用私有所致，可以尝试在文件管理器中将它移动到其他位置，或是选择其它图片", Toasty.LENGTH_LONG).show()
+                            return false
+                        }
+
+                        override fun onResourceReady(resource: Drawable?, model: Any?, target: Target<Drawable>?, dataSource: DataSource?, isFirstResource: Boolean): Boolean {
+                            return false
+                        }
+                    })
                     .error(R.drawable.main_background_2020_1)
-                    .into(bgImageView)
+                    .into(ui.bg)
             Glide.with(this)
                     .load(viewModel.table.background)
                     .override((x * 0.8).toInt(), (y * 0.8).toInt())
                     .transition(DrawableTransitionOptions.withCrossFade())
                     .error(R.drawable.main_background_2020_1)
-                    .into(navigationView.getHeaderView(0).findViewById(R.id.iv_header))
+                    .into(ui.navViewStart.getHeaderView(0).findViewById(R.id.iv_header))
         } else {
             val x = (ViewUtils.getRealSize(this).x * 0.5).toInt()
             val y = (ViewUtils.getRealSize(this).y * 0.5).toInt()
@@ -201,16 +192,16 @@ class ScheduleActivity : BaseActivity() {
                     .load(R.drawable.main_background_2020_1)
                     .override(x, y)
                     .transition(DrawableTransitionOptions.withCrossFade())
-                    .into(bgImageView)
+                    .into(ui.bg)
             Glide.with(this)
                     .load(R.drawable.main_background_2020_1)
                     .override((x * 0.8).toInt(), (y * 0.8).toInt())
                     .transition(DrawableTransitionOptions.withCrossFade())
-                    .into(navigationView.getHeaderView(0).findViewById(R.id.iv_header))
+                    .into(ui.navViewStart.getHeaderView(0).findViewById(R.id.iv_header))
         }
 
-        for (i in 0 until scheduleConstraintLayout.childCount) {
-            val view = scheduleConstraintLayout.getChildAt(i)
+        for (i in 0 until ui.content.childCount) {
+            val view = ui.content.getChildAt(i)
             when (view) {
                 is AppCompatTextView -> view.setTextColor(viewModel.table.textColor)
                 is AppCompatImageButton -> view.setColorFilter(viewModel.table.textColor)
@@ -231,28 +222,16 @@ class ScheduleActivity : BaseActivity() {
     }
 
     private fun initTableMenu(data: MutableList<TableSelectBean>) {
-        tableNameRecyclerView.layoutManager = androidx.recyclerview.widget.LinearLayoutManager(this)
         val appWidgetManager = AppWidgetManager.getInstance(applicationContext)
         val adapter = TableNameAdapter(R.layout.item_table_select_main, data)
-        adapter.addHeaderView(FrameLayout(this).apply {
-            this.layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dip(24))
-        })
-        adapter.addFooterView(initFooterView())
-        adapter.addChildClickViewIds(R.id.menu_setting, R.id.menu_export)
+        adapter.addChildClickViewIds(R.id.menu_setting)
         adapter.setOnItemChildClickListener { _, view, _ ->
             when (view.id) {
                 R.id.menu_setting -> {
                     startActivityForResult(Intent(this,
                             ScheduleSettingsActivity::class.java).apply {
                         putExtra("tableData", viewModel.table)
-                    }, 16)
-                }
-                R.id.menu_export -> {
-                    if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
-                        ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.WRITE_EXTERNAL_STORAGE), 1)
-                    } else {
-                        ExportSettingsFragment().show(supportFragmentManager, "exportSettingsFragment")
-                    }
+                    }, Const.REQUEST_CODE_SCHEDULE_SETTING)
                 }
             }
         }
@@ -266,7 +245,6 @@ class ScheduleActivity : BaseActivity() {
                         val table = viewModel.getDefaultTable()
                         list.forEach {
                             when (it.detailType) {
-                                // 0 -> AppWidgetUtils.refreshScheduleWidget(applicationContext, appWidgetManager, it.id, table)
                                 1 -> AppWidgetUtils.refreshTodayWidget(applicationContext, appWidgetManager, it.id, table)
                             }
                         }
@@ -274,13 +252,25 @@ class ScheduleActivity : BaseActivity() {
                 }
             }
         }
-        tableNameRecyclerView.adapter = adapter
+        ui.rvTableName.adapter = adapter
     }
 
-    private fun initFooterView(): View {
-        val view = LayoutInflater.from(this).inflate(R.layout.item_table_add_main, tableNameRecyclerView, false)
-        val tableAdd = view.findViewById<AppCompatTextView>(R.id.nav_table_add)
-        tableAdd.setOnClickListener {
+    private fun initBottomSheetAction() {
+        bottomSheetBehavior.addBottomSheetCallback(object : BottomSheetBehavior.BottomSheetCallback() {
+            override fun onSlide(bottomSheet: View, slideOffset: Float) {
+
+            }
+
+            override fun onStateChanged(bottomSheet: View, newState: Int) {
+                if (newState == BottomSheetBehavior.STATE_EXPANDED) {
+                    ui.weekScrollView.smoothScrollTo(if (viewModel.selectedWeek > 4) (viewModel.selectedWeek - 4) * dip(56) else 0, 0)
+                    if (ui.weekToggleGroup.checkedButtonId != viewModel.selectedWeek) {
+                        ui.weekToggleGroup.check(viewModel.selectedWeek)
+                    }
+                }
+            }
+        })
+        ui.createScheduleBtn.setOnClickListener {
             val dialog = MaterialAlertDialogBuilder(this)
                     .setTitle(R.string.setting_schedule_name)
                     .setView(R.layout.dialog_edit_text)
@@ -306,65 +296,182 @@ class ScheduleActivity : BaseActivity() {
                     }
                 }
             }
+            bottomSheetBehavior.state = BottomSheetBehavior.STATE_HIDDEN
         }
-        val tableManage = view.findViewById<AppCompatTextView>(R.id.nav_table_manage)
-        tableManage.setOnClickListener {
+        ui.manageScheduleBtn.setOnClickListener {
             startActivityForResult(
-                    Intent(this, ScheduleManageActivity::class.java), 16)
+                    Intent(this, ScheduleManageActivity::class.java), Const.REQUEST_CODE_SCHEDULE_SETTING)
         }
-        return view
+        ui.changeWeekBtn.setOnClickListener {
+            startActivityForResult(Intent(this,
+                    ScheduleSettingsActivity::class.java).apply {
+                putExtra("tableData", viewModel.table)
+                putExtra("settingItem", "当前周")
+            }, Const.REQUEST_CODE_SCHEDULE_SETTING)
+        }
+        ui.timeBtn.setOnClickListener {
+            startActivityForResult(Intent(this,
+                    ScheduleSettingsActivity::class.java).apply {
+                putExtra("tableData", viewModel.table)
+                putExtra("settingItem", "上课时间")
+            }, Const.REQUEST_CODE_SCHEDULE_SETTING)
+        }
+        ui.changeBgBtn.setOnClickListener {
+            startActivityForResult(Intent(this,
+                    ScheduleSettingsActivity::class.java).apply {
+                putExtra("tableData", viewModel.table)
+                putExtra("settingItem", "课程表背景")
+            }, Const.REQUEST_CODE_SCHEDULE_SETTING)
+        }
+        ui.courseBtn.setOnClickListener {
+            start<ScheduleManageActivity> {
+                putExtra("selectedTable", TableSelectBean(
+                        id = viewModel.table.id,
+                        background = viewModel.table.background,
+                        tableName = viewModel.table.tableName,
+                        maxWeek = viewModel.table.maxWeek,
+                        nodes = viewModel.table.nodes,
+                        type = viewModel.table.type
+                ))
+            }
+        }
+        ui.qaBtn.setOnClickListener {
+            Utils.openUrl(this, "https://support.qq.com/embed/97617/faqs-more")
+        }
     }
 
-    fun initIntro() {
+    private fun initIntro() {
+        val builder = Tooltip.Builder(this@ScheduleActivity)
+                .overlay(true)
+                .maxWidth(dip(240))
+                .customView(R.layout.my_tooltip, R.id.tv_tip)
+        val navTooltip = builder
+                .text("点这里打开左栏")
+                .anchor(ui.navBtn)
+                .create()
+        val jumpTooltip = builder
+                .text("点这里快速回到当前周")
+                .anchor(ui.weekDayView)
+                .create()
+        val addBtnTooltip = builder
+                .text("点这里手动添加课程")
+                .anchor(ui.addBtn)
+                .create()
+        val importTooltip = builder
+                .text("点这里导入课表")
+                .anchor(ui.importBtn)
+                .create()
+        val shareTooltip = builder
+                .text("点这里导出、分享课表")
+                .anchor(ui.shareBtn)
+                .create()
+        val moreTooltip = builder
+                .text("点这里查看更多设置")
+                .anchor(ui.moreBtn)
+                .create()
+        navTooltip.doOnHidden {
+            jumpTooltip.doOnHidden {
+                addBtnTooltip.doOnHidden {
+                    importTooltip.doOnHidden {
+                        shareTooltip.doOnHidden {
+                            moreTooltip.doOnHidden {
+                                getPrefer().edit {
+                                    putBoolean(Const.KEY_HAS_INTRO, true)
+                                }
+                                showBottomSheetDialog()
+                            }.show(ui.content, Tooltip.Gravity.LEFT)
+                            moreTooltip.contentView?.findViewById<TextView>(R.id.btn_next)?.apply {
+                                text = "完成教程"
+                                setOnClickListener {
+                                    moreTooltip.hide()
+                                }
+                            }
+                        }.show(ui.content, Tooltip.Gravity.LEFT)
+                        shareTooltip.contentView?.findViewById<TextView>(R.id.btn_next)?.setOnClickListener {
+                            shareTooltip.hide()
+                        }
+                    }.show(ui.content, Tooltip.Gravity.LEFT)
+                    importTooltip.contentView?.findViewById<TextView>(R.id.btn_next)?.setOnClickListener {
+                        importTooltip.hide()
+                    }
+                }.show(ui.content, Tooltip.Gravity.BOTTOM)
+                addBtnTooltip.contentView?.findViewById<TextView>(R.id.btn_next)?.setOnClickListener {
+                    addBtnTooltip.hide()
+                }
+            }.show(ui.content, Tooltip.Gravity.BOTTOM)
+            jumpTooltip.contentView?.findViewById<TextView>(R.id.btn_next)?.setOnClickListener {
+                jumpTooltip.hide()
+            }
+        }.show(ui.content, Tooltip.Gravity.RIGHT)
+        navTooltip.contentView?.findViewById<TextView>(R.id.btn_next)?.setOnClickListener {
+            navTooltip.hide()
+        }
     }
 
     override fun onStart() {
         super.onStart()
-        dateTextView.text = CourseUtils.getTodayDate()
+        ui.dateView.text = CourseUtils.getTodayDate()
     }
 
     private fun initNavView() {
-        navigationView.menu.findItem(R.id.nav_suda).isVisible = getPrefer().getBoolean(PreferenceKeys.SHOW_SUDA_LIFE, false)
-        navigationView.setNavigationItemSelectedListener {
+        ui.navViewStart.menu.findItem(R.id.nav_suda).isVisible = getPrefer().getBoolean(Const.KEY_SHOW_SUDA_LIFE, false)
+        ui.navViewStart.setNavigationItemSelectedListener {
             when (it.itemId) {
                 R.id.nav_setting -> {
-                    drawerLayout.closeDrawer(GravityCompat.START)
-                    drawerLayout.postDelayed({
-                        startActivityForResult(Intent(this, SettingsActivity::class.java), 31)
+                    ui.drawerLayout.closeDrawer(GravityCompat.START)
+                    ui.drawerLayout.postDelayed({
+                        startActivityForResult(Intent(this, SettingsActivity::class.java), Const.REQUEST_CODE_SCHEDULE_SETTING)
                     }, 360)
                     return@setNavigationItemSelectedListener true
                 }
                 R.id.nav_explore -> {
-                    drawerLayout.closeDrawer(GravityCompat.START)
-                    drawerLayout.postDelayed({
+                    ui.drawerLayout.closeDrawer(GravityCompat.START)
+                    ui.drawerLayout.postDelayed({
                         start<ApplyInfoActivity>()
                     }, 360)
                     return@setNavigationItemSelectedListener true
                 }
+                R.id.nav_course -> {
+                    ui.drawerLayout.closeDrawer(GravityCompat.START)
+                    ui.drawerLayout.postDelayed({
+                        start<ScheduleManageActivity> {
+                            putExtra("selectedTable", TableSelectBean(
+                                    id = viewModel.table.id,
+                                    background = viewModel.table.background,
+                                    tableName = viewModel.table.tableName,
+                                    maxWeek = viewModel.table.maxWeek,
+                                    nodes = viewModel.table.nodes,
+                                    type = viewModel.table.type
+                            ))
+                        }
+                    }, 360)
+                    return@setNavigationItemSelectedListener true
+                }
                 R.id.nav_feedback -> {
-                    drawerLayout.closeDrawer(GravityCompat.START)
-                    drawerLayout.postDelayed({
+                    ui.drawerLayout.closeDrawer(GravityCompat.START)
+                    ui.drawerLayout.postDelayed({
                         Utils.openUrl(this, "https://support.qq.com/product/97617")
+                        Toasty.info(this, "吐槽后隔天记得回来看看回复哦~", Toasty.LENGTH_LONG).show()
                     }, 360)
                     return@setNavigationItemSelectedListener true
                 }
                 R.id.nav_about -> {
-                    drawerLayout.closeDrawer(GravityCompat.START)
-                    drawerLayout.postDelayed({
+                    ui.drawerLayout.closeDrawer(GravityCompat.START)
+                    ui.drawerLayout.postDelayed({
                         start<AboutActivity>()
                     }, 360)
                     return@setNavigationItemSelectedListener true
                 }
                 R.id.nav_young -> {
-                    drawerLayout.closeDrawer(GravityCompat.START)
-                    drawerLayout.postDelayed({
+                    ui.drawerLayout.closeDrawer(GravityCompat.START)
+                    ui.drawerLayout.postDelayed({
                         start<IntroYoungActivity>()
                     }, 360)
                     return@setNavigationItemSelectedListener true
                 }
                 R.id.nav_empty_room -> {
-                    drawerLayout.closeDrawer(GravityCompat.START)
-                    drawerLayout.postDelayed({
+                    ui.drawerLayout.closeDrawer(GravityCompat.START)
+                    ui.drawerLayout.postDelayed({
                         start<SudaLifeActivity> {
                             putExtra("type", "空教室")
                         }
@@ -372,8 +479,8 @@ class ScheduleActivity : BaseActivity() {
                     return@setNavigationItemSelectedListener true
                 }
                 R.id.nav_bathroom -> {
-                    drawerLayout.closeDrawer(GravityCompat.START)
-                    drawerLayout.postDelayed({
+                    ui.drawerLayout.closeDrawer(GravityCompat.START)
+                    ui.drawerLayout.postDelayed({
                         start<SudaLifeActivity> {
                             putExtra("type", "澡堂")
                         }
@@ -388,64 +495,23 @@ class ScheduleActivity : BaseActivity() {
         }
     }
 
-    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<String>, grantResults: IntArray) {
-        when (requestCode) {
-            1 -> {
-                if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    ExportSettingsFragment().show(supportFragmentManager, "exportSettingsFragment")
-                } else {
-                    Toasty.error(applicationContext, "你取消了授权>_<无法导出", Toast.LENGTH_LONG).show()
-                }
-            }
-            2 -> {
-                if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    start<LoginWebActivity> {
-                        putExtra("import_type", "file")
-                    }
-                } else {
-                    Toasty.error(applicationContext, "你取消了授权>_<无法从文件导入", Toast.LENGTH_LONG).show()
-                }
-            }
-            3 -> {
-                if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    start<LoginWebActivity> {
-                        putExtra("import_type", "excel")
-                        putExtra("tableId", viewModel.table.id)
-                    }
-                } else {
-                    Toasty.error(applicationContext, "你取消了授权>_<无法从文件导入", Toast.LENGTH_LONG).show()
-                }
-            }
-            4 -> {
-                if (grantResults.isNotEmpty() && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                    start<LoginWebActivity> {
-                        putExtra("import_type", "html")
-                        putExtra("tableId", viewModel.table.id)
-                    }
-                } else {
-                    Toasty.error(applicationContext, "你取消了授权>_<无法从文件导入", Toast.LENGTH_LONG).show()
-                }
-            }
-        }
-    }
-
     private fun initViewPage(maxWeek: Int, table: TableBean) {
         if (mAdapter == null) {
             mAdapter = SchedulePagerAdapter(maxWeek, preLoad, supportFragmentManager)
-            scheduleViewPager.adapter = mAdapter
-            scheduleViewPager.offscreenPageLimit = 1
+            ui.viewPager.adapter = mAdapter
+            ui.viewPager.offscreenPageLimit = 1
         }
         mAdapter!!.maxWeek = maxWeek
         mAdapter!!.notifyDataSetChanged()
         if (CourseUtils.countWeek(table.startDate, table.sundayFirst) > 0) {
-            scheduleViewPager.currentItem = CourseUtils.countWeek(table.startDate, table.sundayFirst) - 1
+            ui.viewPager.currentItem = CourseUtils.countWeek(table.startDate, table.sundayFirst) - 1
         } else {
-            scheduleViewPager.currentItem = 0
+            ui.viewPager.currentItem = 0
         }
     }
 
     private fun initEvent() {
-        addImageButton.setOnClickListener {
+        ui.addBtn.setOnClickListener {
             start<AddCourseActivity> {
                 putExtra("tableId", viewModel.table.id)
                 putExtra("maxWeek", viewModel.table.maxWeek)
@@ -454,56 +520,60 @@ class ScheduleActivity : BaseActivity() {
             }
         }
 
-        moreImageButton.setOnClickListener {
-            drawerLayout.openDrawer(GravityCompat.END)
+        ui.moreBtn.setOnClickListener {
+            showBottomSheetDialog()
+            //ui.drawerLayout.openDrawer(Gravity.END)
         }
 
-        navImageButton.setOnClickListener { drawerLayout.openDrawer(GravityCompat.START) }
+        ui.bottomSheet.setOnClickListener {
+            bottomSheetBehavior.state = BottomSheetBehavior.STATE_HIDDEN
+        }
 
-        shareImageButton.setOnClickListener {
-            if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
-                ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.WRITE_EXTERNAL_STORAGE), 1)
-            } else {
-                ExportSettingsFragment().show(supportFragmentManager, "share")
+        ui.weekToggleGroup.addOnButtonCheckedListener { _, checkedId, isChecked ->
+            if (isChecked) {
+                ui.viewPager.currentItem = checkedId - 1
             }
         }
 
-        importImageButton.setOnClickListener {
+        ui.navBtn.setOnClickListener { ui.drawerLayout.openDrawer(GravityCompat.START) }
+
+        ui.shareBtn.setOnClickListener {
+            ExportSettingsFragment().show(supportFragmentManager, null)
+        }
+
+        ui.importBtn.setOnClickListener {
             ImportChooseFragment().show(supportFragmentManager, "importDialog")
         }
 
-        weekdayTextView.setOnClickListener {
-            weekdayTextView.text = CourseUtils.getWeekday()
-            val currentWeek = countWeek(viewModel.table.startDate, viewModel.table.sundayFirst)
-            if (currentWeek > 0) {
-                scheduleViewPager.currentItem = currentWeek - 1
+        ui.weekDayView.setOnClickListener {
+            ui.weekDayView.text = CourseUtils.getWeekday()
+            if (viewModel.currentWeek > 0) {
+                ui.viewPager.currentItem = viewModel.currentWeek - 1
             } else {
-                scheduleViewPager.currentItem = 0
+                ui.viewPager.currentItem = 0
             }
         }
 
-        scheduleViewPager.addOnPageChangeListener(object : ViewPager.OnPageChangeListener {
+        ui.viewPager.addOnPageChangeListener(object : ViewPager.OnPageChangeListener {
 
             override fun onPageSelected(position: Int) {
                 viewModel.selectedWeek = position + 1
-                val currentWeek = countWeek(viewModel.table.startDate, viewModel.table.sundayFirst)
                 try {
-                    if (currentWeek > 0) {
-                        if (viewModel.selectedWeek == currentWeek) {
-                            weekTextView.text = "第${viewModel.selectedWeek}周"
-                            weekdayTextView.text = CourseUtils.getWeekday()
+                    if (viewModel.currentWeek > 0) {
+                        if (viewModel.selectedWeek == viewModel.currentWeek) {
+                            ui.weekView.text = "第${viewModel.selectedWeek}周"
+                            ui.weekDayView.text = CourseUtils.getWeekday()
                         } else {
-                            weekTextView.text = "第${viewModel.selectedWeek}周"
-                            weekdayTextView.text = "非本周"
+                            ui.weekView.text = "第${viewModel.selectedWeek}周"
+                            ui.weekDayView.text = "非本周"
                         }
                     } else {
-                        weekTextView.text = "还没有开学哦"
-                        weekdayTextView.text = CourseUtils.getWeekday()
+                        ui.weekView.text = "第${viewModel.selectedWeek}周"
+                        ui.weekDayView.text = "还没有开学哦"
                     }
                 } catch (e: ParseException) {
                     e.printStackTrace()
                 }
-
             }
 
             override fun onPageScrolled(a: Int, b: Float, c: Int) {
@@ -514,31 +584,69 @@ class ScheduleActivity : BaseActivity() {
 
             }
         })
+
+    }
+
+    private fun showBottomSheetDialog() {
+        bottomSheetBehavior.state = BottomSheetBehavior.STATE_EXPANDED
+
     }
 
     private fun initView() {
         launch {
             viewModel.table = viewModel.getDefaultTable()
-
-            val currentWeek = countWeek(viewModel.table.startDate, viewModel.table.sundayFirst)
-
-            if (currentWeek > 0) {
-                weekTextView.text = "第${currentWeek}周"
+            viewModel.currentWeek = CourseUtils.countWeek(viewModel.table.startDate, viewModel.table.sundayFirst)
+            viewModel.selectedWeek = viewModel.currentWeek
+            if (viewModel.currentWeek > 0) {
+                if (viewModel.currentWeek <= viewModel.table.maxWeek) {
+                    ui.weekView.text = "第${viewModel.currentWeek}周"
+                } else {
+                    ui.weekView.text = "当前周已超出设定范围"
+                    MaterialAlertDialogBuilder(this@ScheduleActivity)
+                            .setTitle("提示")
+                            .setMessage("发现当前周已超出设定的周数范围，是否去设置修改「当前周」或「开学日期」？")
+                            .setPositiveButton("打开设置") { _, _ ->
+                                startActivityForResult(Intent(this@ScheduleActivity,
+                                        ScheduleSettingsActivity::class.java).apply {
+                                    putExtra("tableData", viewModel.table)
+                                }, Const.REQUEST_CODE_SCHEDULE_SETTING)
+                            }
+                            .setNegativeButton(R.string.cancel, null)
+                            .show()
+                }
             } else {
-                weekTextView.text = "还没有开学哦"
+                ui.weekView.text = "还没有开学哦"
             }
 
-            weekdayTextView.text = CourseUtils.getWeekday()
+            ui.weekToggleGroup.removeAllViews()
+            ui.weekToggleGroup.clearChecked()
+            for (i in 1..viewModel.table.maxWeek) {
+                ui.weekToggleGroup.addView(ui.createOutlineButton().apply {
+                    id = i
+                    text = i.toString()
+                    textSize = 12f
+                }, dip(48), dip(48))
+            }
+
+            launch {
+                delay(1000)
+                if (ui.weekToggleGroup.checkedButtonId != viewModel.selectedWeek) {
+                    ui.weekToggleGroup.check(viewModel.selectedWeek)
+                }
+                ui.weekScrollView.smoothScrollTo(if (viewModel.selectedWeek > 4) (viewModel.selectedWeek - 4) * dip(56) else 0, 0)
+            }
+
+            ui.weekDayView.text = CourseUtils.getWeekday()
 
             initTheme()
+
+            viewModel.timeList = viewModel.getTimeList(viewModel.table.timeTable)
 
             viewModel.alphaInt = (255 * (viewModel.table.itemAlpha.toFloat() / 100)).roundToInt()
 
             initViewPage(viewModel.table.maxWeek, viewModel.table)
 
             initEvent()
-
-            viewModel.timeList = viewModel.getTimeList(viewModel.table.timeTable)
 
             for (i in 1..7) {
                 viewModel.getRawCourseByDay(i, viewModel.table.id).observe(this@ScheduleActivity, Observer { list ->
@@ -551,28 +659,92 @@ class ScheduleActivity : BaseActivity() {
     }
 
     override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
-        if (requestCode == 16) {
-            initView()
+        if (resultCode != RESULT_OK) {
+            when (requestCode) {
+                Const.REQUEST_CODE_EXPORT -> {
+                    ui.content.longSnack("导出是否遇到了问题？") {
+                        action("查看教程") {
+                            Utils.openUrl(this@ScheduleActivity, "https://support.qq.com/embed/phone/97617/faqs/59883")
+                        }
+                    }
+                }
+            }
+            super.onActivityResult(requestCode, resultCode, data)
+            return
         }
-        if (requestCode == 32 && resultCode == RESULT_OK) {
-            drawerLayout.openDrawer(GravityCompat.END)
-            AfterImportTipFragment.newInstance().show(supportFragmentManager, "AfterImportTipFragment")
-        }
-        if (requestCode == 31 && resultCode == RESULT_OK) {
-            initView()
+        when (requestCode) {
+            Const.REQUEST_CODE_SCHEDULE_SETTING -> initView()
+            Const.REQUEST_CODE_IMPORT -> {
+                showBottomSheetDialog()
+                //ui.drawerLayout.openDrawer(Gravity.END)
+                MaterialAlertDialogBuilder(this)
+                        .setTitle("温馨提示")
+                        .setView(AppCompatTextView(this).apply {
+                            text = ViewUtils.getHtmlSpannedString("记得<b><font color='#fa6278'>仔细检查</font></b>有没有少课、课程信息对不对哦，不要到时候<b><font color='#fa6278'>一不小心就翘课</font></b>啦<br>解析算法不是100%可靠的哦<br>但会朝这个方向努力")
+                            layoutParams = ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT)
+                            val space = styledDimenPxSize(R.attr.dialogPreferredPadding)
+                            setPadding(space, dip(8), space, 0)
+                        })
+                        .setCancelable(false)
+                        .setPositiveButton("我知道啦", null)
+                        .show()
+            }
+            Const.REQUEST_CODE_EXPORT -> {
+                val uri = data?.data
+                launch {
+                    try {
+                        viewModel.exportData(uri)
+                        showShareDialog("分享课程文件", uri!!)
+                    } catch (e: Exception) {
+                        Toasty.error(this@ScheduleActivity, "导出失败>_<${e.message}")
+                    }
+                }
+            }
+            Const.REQUEST_CODE_EXPORT_ICS -> {
+                val uri = data?.data
+                launch {
+                    try {
+                        viewModel.exportICS(uri)
+                        showShareDialog("分享日历文件", uri!!)
+                    } catch (e: Exception) {
+                        Toasty.error(this@ScheduleActivity, "导出失败>_<${e.message}")
+                    }
+                }
+            }
         }
         super.onActivityResult(requestCode, resultCode, data)
     }
 
+    private fun showShareDialog(title: String, uri: Uri) {
+        MaterialAlertDialogBuilder(this)
+                .setTitle("分享")
+                .setMessage("成功导出至你指定的路径啦，是否还要分享出去呢？")
+                .setNegativeButton(R.string.cancel, null)
+                .setPositiveButton("分享") { _, _ ->
+                    val shareIntent = ShareCompat.IntentBuilder.from(this)
+                            .setChooserTitle(title)
+                            .setStream(uri)
+                            .setType("*/*")
+                            .createChooserIntent()
+                            .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                    startActivity(shareIntent)
+                }
+                .setCancelable(false)
+                .show()
+    }
+
     override fun onBackPressed() {
         when {
-            drawerLayout.isDrawerOpen(GravityCompat.START) -> drawerLayout.closeDrawer(GravityCompat.START)
-            drawerLayout.isDrawerOpen(GravityCompat.END) -> drawerLayout.closeDrawer(GravityCompat.END)
+            ui.drawerLayout.isDrawerOpen(GravityCompat.START) -> ui.drawerLayout.closeDrawer(GravityCompat.START)
+            ui.drawerLayout.isDrawerOpen(GravityCompat.END) -> ui.drawerLayout.closeDrawer(GravityCompat.END)
+            bottomSheetBehavior.state == BottomSheetBehavior.STATE_EXPANDED -> bottomSheetBehavior.state = BottomSheetBehavior.STATE_HIDDEN
             else -> super.onBackPressed()
         }
     }
 
     override fun onDestroy() {
+        ui.viewPager.clearOnPageChangeListeners()
+        ui.weekToggleGroup.clearOnButtonCheckedListeners()
         AppWidgetUtils.updateWidget(applicationContext)
         super.onDestroy()
     }

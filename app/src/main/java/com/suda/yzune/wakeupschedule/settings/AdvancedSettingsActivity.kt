@@ -21,7 +21,10 @@ import com.suda.yzune.wakeupschedule.R
 import com.suda.yzune.wakeupschedule.base_view.BaseListActivity
 import com.suda.yzune.wakeupschedule.dao.AppWidgetDao
 import com.suda.yzune.wakeupschedule.settings.items.*
-import com.suda.yzune.wakeupschedule.utils.*
+import com.suda.yzune.wakeupschedule.utils.AppWidgetUtils
+import com.suda.yzune.wakeupschedule.utils.Const
+import com.suda.yzune.wakeupschedule.utils.DonateUtils
+import com.suda.yzune.wakeupschedule.utils.getPrefer
 import com.suda.yzune.wakeupschedule.widget.colorpicker.ColorPickerFragment
 import es.dmoral.toasty.Toasty
 import splitties.activities.start
@@ -32,7 +35,7 @@ class AdvancedSettingsActivity : BaseListActivity(), ColorPickerFragment.ColorPi
 
     override fun onColorSelected(dialogId: Int, color: Int) {
         getPrefer().edit {
-            putInt(PreferenceKeys.THEME_COLOR, color)
+            putInt(Const.KEY_THEME_COLOR, color)
         }
         mRecyclerView.longSnack("重启App后生效哦~")
     }
@@ -83,7 +86,7 @@ class AdvancedSettingsActivity : BaseListActivity(), ColorPickerFragment.ColorPi
     }
 
     private fun onItemsCreated(items: MutableList<BaseSettingItem>) {
-        val colorStr = getPrefer().getInt(PreferenceKeys.THEME_COLOR, color(R.color.colorAccent))
+        val colorStr = getPrefer().getInt(Const.KEY_THEME_COLOR, color(R.color.colorAccent))
                 .toString(16)
         if (BuildConfig.CHANNEL == "google" || BuildConfig.CHANNEL == "huawei") {
             items.add(CategoryItem("外观", true))
@@ -95,30 +98,23 @@ class AdvancedSettingsActivity : BaseListActivity(), ColorPickerFragment.ColorPi
         }
 
         items.add(VerticalItem("主题颜色", "调整大部分标签和虚拟键的颜色。\n以下关于虚拟键的设置，只对有虚拟键的手机有效哦，是为了有更好的沉浸效果~\n有实体按键或全面屏手势的手机本身就很棒啦~"))
-        items.add(SwitchItem("主界面虚拟键沉浸", getPrefer().getBoolean(PreferenceKeys.HIDE_NAV_BAR, true)))
+        items.add(SwitchItem("主界面虚拟键沉浸", getPrefer().getBoolean(Const.KEY_HIDE_NAV_BAR, true)))
 
         items.add(CategoryItem("上课提醒", false))
         items.add(VerticalItem("功能说明", "本功能处于<b><font color='#$colorStr'>试验性阶段</font></b>。由于国产手机对系统的定制不尽相同，本功能可能会在某些手机上失效。<b><font color='#$colorStr'>开启前提：设置好课程时间 + 往桌面添加一个日视图小部件 + 允许App后台运行</font></b>。<br>理论上<b><font color='#$colorStr'>每次设置之后</font></b>需要半天以上的时间才会正常工作，理论上不会很耗电。", true))
-        items.add(SwitchItem("开启上课提醒", getPrefer().getBoolean(PreferenceKeys.COURSE_REMIND, false)))
-        items.add(SwitchItem("提醒通知常驻", getPrefer().getBoolean(PreferenceKeys.REMINDER_ON_GOING, false)))
-        items.add(SeekBarItem("提前几分钟提醒", getPrefer().getInt(PreferenceKeys.REMINDER_TIME, 20), 0, 90, "分钟"))
+        items.add(SwitchItem("开启上课提醒", getPrefer().getBoolean(Const.KEY_COURSE_REMIND, false)))
+        items.add(SwitchItem("提醒通知常驻", getPrefer().getBoolean(Const.KEY_REMINDER_ON_GOING, false)))
+        items.add(SeekBarItem("提前几分钟提醒", getPrefer().getInt(Const.KEY_REMINDER_TIME, 20), 0, 90, "分钟"))
         //items.add(SwitchItem("提醒同时将手机静音", PreferenceUtils.getBooleanFromSP(applicationContext, "silence_reminder", false)))
-
-        items.add(CategoryItem("开发情况", false))
-        items.add(VerticalItem("截至2018.12.02", "161次代码提交\n净提交代码17935行\n点击跳转至项目地址\n欢迎star和fork"))
     }
 
     private fun onSwitchItemCheckChange(item: SwitchItem, isChecked: Boolean) {
         when (item.title) {
             "主界面虚拟键沉浸" -> {
                 getPrefer().edit {
-                    putBoolean(PreferenceKeys.HIDE_NAV_BAR, isChecked)
+                    putBoolean(Const.KEY_HIDE_NAV_BAR, isChecked)
                 }
-                if (Build.VERSION.SDK_INT < Build.VERSION_CODES.KITKAT) {
-                    mRecyclerView.longSnack("该设置仅对 Android 4.4 及以上版本有效>_<")
-                } else {
-                    mRecyclerView.longSnack("重启App后生效哦~")
-                }
+                mRecyclerView.longSnack("重启App后生效哦~")
                 item.checked = isChecked
             }
             "开启上课提醒" -> {
@@ -127,13 +123,13 @@ class AdvancedSettingsActivity : BaseListActivity(), ColorPickerFragment.ColorPi
                     if (task.isEmpty()) {
                         mRecyclerView.longSnack("好像还没有设置日视图小部件呢>_<")
                         getPrefer().edit {
-                            putBoolean(PreferenceKeys.COURSE_REMIND, false)
+                            putBoolean(Const.KEY_COURSE_REMIND, false)
                         }
                         item.checked = false
                         mAdapter.notifyDataSetChanged()
                     } else {
                         getPrefer().edit {
-                            putBoolean(PreferenceKeys.COURSE_REMIND, isChecked)
+                            putBoolean(Const.KEY_COURSE_REMIND, isChecked)
                         }
                         AppWidgetUtils.updateWidget(applicationContext)
                         item.checked = isChecked
@@ -142,7 +138,7 @@ class AdvancedSettingsActivity : BaseListActivity(), ColorPickerFragment.ColorPi
             }
             "提醒通知常驻" -> {
                 getPrefer().edit {
-                    putBoolean(PreferenceKeys.REMINDER_ON_GOING, isChecked)
+                    putBoolean(Const.KEY_REMINDER_ON_GOING, isChecked)
                 }
                 item.checked = isChecked
                 mRecyclerView.longSnack("对下一次提醒通知生效哦")
@@ -155,7 +151,7 @@ class AdvancedSettingsActivity : BaseListActivity(), ColorPickerFragment.ColorPi
                     item.checked = false
                 } else {
                     getPrefer().edit {
-                        putBoolean(PreferenceKeys.SILENCE_REMINDER, isChecked)
+                        putBoolean(Const.KEY_SILENCE_REMINDER, isChecked)
                     }
                     AppWidgetUtils.updateWidget(applicationContext)
                     item.checked = isChecked
@@ -182,11 +178,8 @@ class AdvancedSettingsActivity : BaseListActivity(), ColorPickerFragment.ColorPi
             "主题颜色" -> {
                 ColorPickerFragment.newBuilder()
                         .setShowAlphaSlider(true)
-                        .setColor(getPrefer().getInt(PreferenceKeys.THEME_COLOR, color(R.color.colorAccent)))
+                        .setColor(getPrefer().getInt(Const.KEY_THEME_COLOR, color(R.color.colorAccent)))
                         .show(this)
-            }
-            "截至2018.12.02" -> {
-                Utils.openUrl(this, "https://github.com/YZune/WakeupSchedule_Kotlin/")
             }
         }
     }
@@ -226,7 +219,7 @@ class AdvancedSettingsActivity : BaseListActivity(), ColorPickerFragment.ColorPi
             when (item.title) {
                 "提前几分钟提醒" -> {
                     getPrefer().edit {
-                        putInt(PreferenceKeys.REMINDER_TIME, valueInt)
+                        putInt(Const.KEY_REMINDER_TIME, valueInt)
                     }
                     AppWidgetUtils.updateWidget(applicationContext)
                 }
